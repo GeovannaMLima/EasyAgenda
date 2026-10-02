@@ -1,4 +1,4 @@
-package models;
+package Agenda.res.models;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

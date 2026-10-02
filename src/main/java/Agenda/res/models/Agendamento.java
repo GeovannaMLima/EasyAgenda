@@ -1,4 +1,4 @@
-package models;
+package Agenda.res.models;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -16,6 +16,13 @@ import java.time.LocalDateTime;
 @Table(name="agendamento")
 public class Agendamento {
     private static final long serialVersionUID = 1L;
+
+    public Agendamento(Cliente cliente, Profissional profissional, Servico servico, LocalDateTime dataHoraInicio) {
+        this.cliente = cliente;
+        this.profissional = profissional;
+        this.servico = servico;
+        this.dataHoraInicio = dataHoraInicio;
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
