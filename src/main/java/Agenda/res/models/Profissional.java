@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -25,6 +26,6 @@ public class Profissional implements Serializable {
     private String nome;
     private String email;
     @OneToMany(mappedBy = "profissional", cascade = CascadeType.ALL)
-    private List<Servico> servicos ;
+    private List<Servico> servicos = new ArrayList<>();
 
 }
