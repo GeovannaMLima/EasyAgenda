@@ -31,4 +31,10 @@ public class Servico implements Serializable {
     private Profissional profissional;
 
 
+    public Servico(String nome, Integer duracaoMinutos, BigDecimal price, Profissional profissional) {
+        this.nome = nome;
+        this.duracaoMinutos = duracaoMinutos;
+        this.price = price;
+        this.profissional = profissional;
+    }
 }
