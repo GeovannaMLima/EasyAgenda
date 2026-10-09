@@ -1,8 +1,10 @@
 package Agenda.res.services;
 
+import Agenda.res.AuditoriaMessaging.producer.AuditoriaProducer;
 import Agenda.res.Dtos.AgendamentoRequestDto;
 import Agenda.res.Dtos.AgendamentoResponseDto;
 import Agenda.res.Services.AgendamentoService;
+import Agenda.res.messaging.publisher.AgendamentoEventPublisher;
 import Agenda.res.models.Agendamento;
 import Agenda.res.models.Cliente;
 import Agenda.res.models.Profissional;
@@ -28,7 +30,7 @@ import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class AgendamentoServiceTest {
@@ -40,6 +42,10 @@ public class AgendamentoServiceTest {
     private ProfissionalRepository profissionalRepository;
     @Mock
     private ServicoRepository servicoRepository;
+    @Mock
+    private AgendamentoEventPublisher eventPublisher;
+    @Mock
+    private AuditoriaProducer auditoriaProducer;
 
     @InjectMocks
     private AgendamentoService agendamentoService;
@@ -61,6 +67,7 @@ public class AgendamentoServiceTest {
         when(agendamentoRepository.findByProfissionalIdAndDataHoraInicioBetween(any(),any(),any())).thenReturn(new ArrayList<>());
         when(agendamentoRepository.save(any(Agendamento.class))).thenReturn(new Agendamento(cliente,profissional,servico,dataInicio));
 
+
         //Act
         AgendamentoResponseDto response = agendamentoService.createAgendamento(requestDto);
 
@@ -68,6 +75,8 @@ public class AgendamentoServiceTest {
         //Assert
         assertNotNull(response);
         assertEquals("Ana", response.nomeCliente());
+        verify(eventPublisher).publicarEventoCriado(any());
+        verify(auditoriaProducer).publicar(any());
     }
 
     @Test
@@ -93,6 +102,8 @@ public class AgendamentoServiceTest {
         assertThrows(IllegalStateException.class, () ->{
             agendamentoService.createAgendamento(requestDto);
         });
+        verify(agendamentoRepository,never()).save(any());
+        verifyNoInteractions(eventPublisher,auditoriaProducer);
     }
 
 }
