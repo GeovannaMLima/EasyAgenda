@@ -1,5 +1,8 @@
 package Agenda.res.Services;
 
+import Agenda.res.AuditoriaMessaging.event.AcaoAuditoria;
+import Agenda.res.AuditoriaMessaging.event.AgendamentoAuditoriaEvent;
+import Agenda.res.AuditoriaMessaging.producer.AuditoriaProducer;
 import Agenda.res.Dtos.AgendamentoRequestDto;
 import Agenda.res.Dtos.AgendamentoResponseDto;
 import Agenda.res.messaging.event.AgendamentoCriadoEvent;
@@ -20,19 +23,30 @@ import java.util.List;
 
 @Service
 public class AgendamentoService {
-    @Autowired
-    private AgendamentoRepository agendamentoRepository;
-    @Autowired
-    private ClienteRepository clienteRepository;
-    @Autowired
-    private ProfissionalRepository profissionalRepository;
-    @Autowired
-    private ServicoRepository servicoRepository;
+
+    private final AgendamentoRepository agendamentoRepository;
+    private final ClienteRepository clienteRepository;
+    private final ProfissionalRepository profissionalRepository;
+    private final ServicoRepository servicoRepository;
     //injeta o publisher
     private final AgendamentoEventPublisher eventPublisher;
 
-    public AgendamentoService(AgendamentoEventPublisher eventPublisher) {
+    //producer kafka
+    private final AuditoriaProducer auditoriaProducer;
+
+    public AgendamentoService(AgendamentoRepository agendamentoRepository,
+                              ClienteRepository clienteRepository,
+                              ProfissionalRepository profissionalRepository,
+                              ServicoRepository servicoRepository,
+                              AgendamentoEventPublisher eventPublisher,
+                              AuditoriaProducer auditoriaProducer) {
+        this.agendamentoRepository = agendamentoRepository;
+        this.clienteRepository = clienteRepository;
+        this.profissionalRepository = profissionalRepository;
+        this.servicoRepository = servicoRepository;
+
         this.eventPublisher = eventPublisher;
+        this.auditoriaProducer = auditoriaProducer;
     }
 
     public AgendamentoResponseDto createAgendamento(AgendamentoRequestDto request){
@@ -73,6 +87,14 @@ public class AgendamentoService {
         );
 
         eventPublisher.publicarEventoCriado(evento);
+        auditoriaProducer.publicar(new AgendamentoAuditoriaEvent(
+                evento.agendamentoId(),
+                AcaoAuditoria.CRIADO,
+                agendamentoSalvo.getCliente().getId(),
+                agendamentoSalvo.getProfissional().getId(),
+                agendamentoSalvo.getServico().getId(),
+                dataInicio,
+                LocalDateTime.now()));
 
         return new AgendamentoResponseDto(
                 agendamentoSalvo.getId(),
