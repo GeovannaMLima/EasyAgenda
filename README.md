@@ -1,5 +1,7 @@
 # AgendaFácil
 
+[![Java CI with Maven](https://github.com/GeovannaMLima/EasyAgenda/actions/workflows/maven.yml/badge.svg?branch=main)](https://github.com/GeovannaMLima/EasyAgenda/actions/workflows/maven.yml)
+
 API de agendamento de serviços para profissionais autônomos (cabeleireiros, personal trainers, terapeutas). Profissionais cadastram os serviços que oferecem, clientes marcam horário, e o sistema **impede que dois agendamentos se sobreponham** para o mesmo profissional.
 
 Projeto com mensageria **RabbitMQ** (notificação) e **Kafka** (auditoria), e infraestrutura em containers.
@@ -131,6 +133,6 @@ A data precisa estar no futuro. Um segundo agendamento no mesmo horário para o 
 
 `AgendamentoServiceTest` cobre a regra de negócio com Mockito, sem subir banco nem brokers:
 
-- cria o agendamento quando não há conflito e publica os dois eventos;
-- recusa quando há conflito e confirma que nada é salvo nem publicado.
-
+- Cria o agendamento quando não há conflito e publica os dois eventos;
+- Recusa quando há conflito e confirma que nada é salvo nem publicado.
+- A cada push e a cada Pull Request, o GitHub Actions executa os testes automaticamente (workflow `Java CI with Maven`). 
