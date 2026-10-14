@@ -70,7 +70,7 @@ public class AgendamentoService {
             LocalDateTime existeAgendamentoInicio = existeAgendamento.getDataHoraInicio();
             LocalDateTime existeAgendamentoFim= existeAgendamentoInicio.plusMinutes(existeAgendamento.getServico().getDuracaoMinutos());
 
-            boolean conflito = dataInicio.isBefore(existeAgendamentoInicio) && existeAgendamentoInicio.isBefore(existeAgendamentoFim);
+            boolean conflito = dataInicio.isBefore(existeAgendamentoFim) && existeAgendamentoInicio.isBefore(dataFim);
             if(conflito){
                 throw new IllegalStateException("O profissional ja possui agendamento para esse Horário");
             }
