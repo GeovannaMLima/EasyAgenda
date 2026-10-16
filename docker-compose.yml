@@ -29,6 +29,21 @@ services:
     ports:
       - "9092:9092"
 
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/agendafacil
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      SPRING_RABBITMQ_HOST: rabbitmq
+
+    depends_on:
+      - postgres
+      - rabbitmq
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   rabbitmq_data:
