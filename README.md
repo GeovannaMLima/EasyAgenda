@@ -4,7 +4,7 @@
 
 API de agendamento de serviços para profissionais autônomos (cabeleireiros, personal trainers, terapeutas). Profissionais cadastram os serviços que oferecem, clientes marcam horário, e o sistema **impede que dois agendamentos se sobreponham** para o mesmo profissional.
 
-Projeto com mensageria **RabbitMQ** (notificação) e **Kafka** (auditoria), e infraestrutura em containers.
+Projeto com mensageria **RabbitMQ** (notificação) e **Kafka** (auditoria). A aplicação e toda a infraestrutura rodam em containers, com Docker Compose.
 
 ## Stack
 
@@ -12,8 +12,9 @@ Projeto com mensageria **RabbitMQ** (notificação) e **Kafka** (auditoria), e i
 - PostgreSQL
 - RabbitMQ (Spring AMQP)
 - Apache Kafka (Spring Kafka)
-- Docker e Docker Compose
+- Docker(build multi-stage) e Docker Compose
 - JUnit 5 e Mockito
+- GitHub Actions
 
 ## Como funciona
 
@@ -52,16 +53,22 @@ A auditoria é um histórico: o que aconteceu precisa ficar registrado e não po
 ### `profissionalId` é a chave da mensagem no Kafka
 A chave decide a partição. Com o `profissionalId`, todos os eventos de um mesmo profissional ficam na mesma partição, e a ordem é garantida dentro dela. Por exemplo, "criado" nunca aparece depois de um "cancelado" do mesmo agendamento.
 
+### Kafka com dois listeners
+Quando um cliente se conecta ao Kafka, ele recebe de volta o endereço pelo qual deve falar 
+com o broker (Advertised Listener), e esse endereço depende de quem está perguntando. A aplicação 
+rodando no IDE, fora do Docker, acessa por ```localhost:9092```. Já a aplicação rodando em container precisa
+do nome do serviço na rede do Compose, ```kafka:19092```, porque localhost dentro do container seria ele mesmo. Por isso o broker expõe dois listeners (EXTERNAL na porta 9092 e INTERNAL na 19092), além do CONTROLLER, de uso interno do Kafka. Assim, o mesmo Compose permite rodar a aplicação das duas formas.
+
 > Este é um projeto de estudo e usa os dois brokers de propósito, para comparar na prática. Em um sistema real, eu avaliaria se os dois são necessários ou se um deles resolve.
 
 ## Como rodar
 
 ### Pré-requisitos
 
-- JDK (versão definida no `pom.xml`)
+- JDK (versão definida no `pom.xml`),apenas para rodar aplicacao fora do docker (opção 2)
 - Docker e Docker Compose
 
-### Passo a passo
+### Configuração (valido para as duas opções)
 
 1. Clone o repositório:
    ```bash
@@ -72,12 +79,17 @@ A chave decide a partição. Com o `profissionalId`, todos os eventos de um mesm
    ```bash
    cp .env.example .env
    ```
-3. Suba a infraestrutura (PostgreSQL, RabbitMQ e Kafka):
+   No PowerShell, use ```copy .env.example .env.```
+
+### Opção 1: Docker
+3. Suba a infraestrutura (PostgreSQL, RabbitMQ , Kafka e API):
    ```bash
-   docker compose up -d
+   docker compose up -d --build
    ```
-4. Rode a aplicação:
+### Opção 2: Aplicação IDE (desenvolvimento)
+3. Suba a infraestrutura e rode a aplicação localmente:
    ```bash
+   docker compose up -d postgres rabbitmq kafka
    ./mvnw spring-boot:run
    ```
 
@@ -135,4 +147,6 @@ A data precisa estar no futuro. Um segundo agendamento no mesmo horário para o 
 
 - Cria o agendamento quando não há conflito e publica os dois eventos;
 - Recusa quando há conflito e confirma que nada é salvo nem publicado.
+
+## Integração contínua (CI)
 - A cada push e a cada Pull Request, o GitHub Actions executa os testes automaticamente (workflow `Java CI with Maven`). 
