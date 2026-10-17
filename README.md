@@ -149,4 +149,13 @@ A data precisa estar no futuro. Um segundo agendamento no mesmo horário para o 
 - Recusa quando há conflito e confirma que nada é salvo nem publicado.
 
 ## Integração contínua (CI)
-- A cada push e a cada Pull Request, o GitHub Actions executa os testes automaticamente (workflow `Java CI with Maven`). 
+- A cada push e a cada Pull Request, o GitHub Actions executa os testes automaticamente (workflow `Java CI with Maven`).
+  
+- O workflow `.github/workflows/maven.yml` roda em dois jobs:
+
+1. **build**: a cada push e Pull Request, baixa o código, configura o JDK 25 e executa os testes (`mvn -B test`).
+2. **docker**: só em push na `main` e somente se os testes passaram, faz login no Docker Hub e constrói e publica a imagem `geolima2/agendafacil`, com as tags `latest` e o SHA do commit. As credenciais ficam nos GitHub Secrets.
+
+Para baixar a imagem publicada:
+
+`docker pull geolima2/agendafacil:latest`
