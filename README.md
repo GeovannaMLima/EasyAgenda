@@ -12,7 +12,7 @@ Projeto com mensageria **RabbitMQ** (notificação) e **Kafka** (auditoria). A a
 - PostgreSQL
 - RabbitMQ (Spring AMQP)
 - Apache Kafka (Spring Kafka)
-- Docker(build multi-stage) e Docker Compose
+- Docker (build multi-stage), Docker Compose, DockerHub
 - JUnit 5 e Mockito
 - GitHub Actions
 
@@ -156,6 +156,20 @@ A data precisa estar no futuro. Um segundo agendamento no mesmo horário para o 
 1. **build**: a cada push e Pull Request, baixa o código, configura o JDK 25 e executa os testes (`mvn -B test`).
 2. **docker**: só em push na `main` e somente se os testes passaram, faz login no Docker Hub e constrói e publica a imagem `geolima2/agendafacil`, com as tags `latest` e o SHA do commit. As credenciais ficam nos GitHub Secrets.
 
+```mermaid
+flowchart LR
+    G[Push ou Pull Request] --> B
+
+    subgraph CI [GitHub Actions]
+        B[Job build<br/>testes: mvn -B test]
+        B -->|passou e é push na main| D[Job docker<br/>login e build da imagem]
+    end
+
+    B -. falhou .-> X[Pipeline para<br/>nada é publicado]
+    S[GitHub Secrets<br/>usuário e token] -.-> D
+    D -->|push| H[(Docker Hub<br/>geolima2/agendafacil)]
+    H -->|docker pull| M[Qualquer máquina<br/>ou servidor]
+```
 Para baixar a imagem publicada:
 
 `docker pull geolima2/agendafacil:latest`
