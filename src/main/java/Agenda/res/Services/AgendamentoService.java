@@ -16,10 +16,14 @@ import Agenda.res.repositories.ClienteRepository;
 import Agenda.res.repositories.ProfissionalRepository;
 import Agenda.res.repositories.ServicoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class AgendamentoService {
@@ -105,6 +109,36 @@ public class AgendamentoService {
                 dataFim
         );
 
+    }
+
+    //listar agendamento por profissional
+    public Page<AgendamentoResponseDto> getAgendamentoByProfissional(Long id, Pageable pageable){
+        if(!profissionalRepository.existsById(id)) {
+            throw new RuntimeException("usuario nao encontrado");
+        }
+
+        return agendamentoRepository.findByProfissionalId(id, pageable).map(this::dataFimToDto);
+    }
+
+    //listar agendamento por cliente
+    public Page<AgendamentoResponseDto> getAgendamentoByCliente(Long id, Pageable pageable){
+        if(!clienteRepository.existsById(id)) {
+            throw new RuntimeException("usuario nao encontrado");
+        }
+
+        return agendamentoRepository.findByClienteId(id, pageable).map(this::dataFimToDto);
+    }
+
+    private AgendamentoResponseDto dataFimToDto(Agendamento a){
+        var servico = a.getServico();
+        var datafim= a.getDataHoraInicio().plusMinutes(servico.getDuracaoMinutos());
+
+        return new AgendamentoResponseDto(a.getId(),
+                a.getCliente().getNome(),
+                a.getProfissional().getNome(),
+                a.getServico().getNome(),
+                a.getDataHoraInicio(),
+                datafim);
     }
 
 
