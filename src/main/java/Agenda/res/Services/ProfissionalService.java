@@ -2,6 +2,7 @@ package Agenda.res.Services;
 
 import Agenda.res.Dtos.ProfissionalRequestDto;
 import Agenda.res.Dtos.ProfissionalResponseDto;
+import Agenda.res.exception.UserAlreadyExistsException;
 import Agenda.res.models.Profissional;
 import Agenda.res.models.Servico;
 import Agenda.res.repositories.ProfissionalRepository;
@@ -21,7 +22,7 @@ public class ProfissionalService {
 
     public ProfissionalResponseDto saveProfissional(ProfissionalRequestDto request){
         if(profissionalRepository.findByEmail(request.email()).isPresent()){
-            throw new RuntimeException("Profissional ja registrado");
+            throw new UserAlreadyExistsException("Profissional ja registrado");
         }
         var profisional= new Profissional();
         BeanUtils.copyProperties(request,profisional);

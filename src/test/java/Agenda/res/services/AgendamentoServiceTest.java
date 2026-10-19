@@ -4,6 +4,7 @@ import Agenda.res.AuditoriaMessaging.producer.AuditoriaProducer;
 import Agenda.res.Dtos.AgendamentoRequestDto;
 import Agenda.res.Dtos.AgendamentoResponseDto;
 import Agenda.res.Services.AgendamentoService;
+import Agenda.res.exception.AgendamentoConflitoException;
 import Agenda.res.messaging.publisher.AgendamentoEventPublisher;
 import Agenda.res.models.Agendamento;
 import Agenda.res.models.Cliente;
@@ -99,7 +100,7 @@ public class AgendamentoServiceTest {
 
         //act e assert
         //testando uma exception
-        assertThrows(IllegalStateException.class, () ->{
+        assertThrows(AgendamentoConflitoException.class, () ->{
             agendamentoService.createAgendamento(requestDto);
         });
         verify(agendamentoRepository,never()).save(any());
