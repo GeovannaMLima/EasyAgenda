@@ -2,6 +2,7 @@ package Agenda.res.Services;
 
 import Agenda.res.Dtos.ServicoRequestDto;
 import Agenda.res.Dtos.ServicoResponseDto;
+import Agenda.res.exception.UserNotFoundException;
 import Agenda.res.models.Profissional;
 import Agenda.res.models.Servico;
 import Agenda.res.repositories.ProfissionalRepository;
@@ -21,7 +22,7 @@ public class ServicoService {
     }
 
     public ServicoResponseDto add(ServicoRequestDto request){
-        Profissional profissional = profissionalRepository.findById(request.profissionalId()).orElseThrow(()-> new RuntimeException("Prfissional não encontrado"));
+        Profissional profissional = profissionalRepository.findById(request.profissionalId()).orElseThrow(()-> new UserNotFoundException("Profissional não encontrado"));
 
         var servico = new Servico(request.nome(),request.duracao(),request.price(), profissional);
 

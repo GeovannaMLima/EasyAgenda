@@ -5,6 +5,9 @@ import Agenda.res.AuditoriaMessaging.event.AgendamentoAuditoriaEvent;
 import Agenda.res.AuditoriaMessaging.producer.AuditoriaProducer;
 import Agenda.res.Dtos.AgendamentoRequestDto;
 import Agenda.res.Dtos.AgendamentoResponseDto;
+import Agenda.res.exception.AgendamentoConflitoException;
+import Agenda.res.exception.ServiceNotFoundException;
+import Agenda.res.exception.UserNotFoundException;
 import Agenda.res.messaging.event.AgendamentoCriadoEvent;
 import Agenda.res.messaging.publisher.AgendamentoEventPublisher;
 import Agenda.res.models.Agendamento;
@@ -54,11 +57,11 @@ public class AgendamentoService {
     }
 
     public AgendamentoResponseDto createAgendamento(AgendamentoRequestDto request){
-        Cliente cliente = clienteRepository.findById(request.clienteId()).orElseThrow(()->new RuntimeException("Cliente nao encontrado"));
+        Cliente cliente = clienteRepository.findById(request.clienteId()).orElseThrow(()->new UserNotFoundException("Cliente nao encontrado"));
 
-        Profissional profissional = profissionalRepository.findById(request.profissionalId()).orElseThrow(()->new RuntimeException("Profissional não encontrado"));
+        Profissional profissional = profissionalRepository.findById(request.profissionalId()).orElseThrow(()->new UserNotFoundException("Profissional não encontrado"));
 
-        Servico servico = servicoRepository.findById(request.servicoId()).orElseThrow(()-> new RuntimeException("Servico não encontrado"));
+        Servico servico = servicoRepository.findById(request.servicoId()).orElseThrow(()-> new ServiceNotFoundException("Servico não encontrado"));
 
         LocalDateTime dataInicio = request.dataHoraInicio();
         LocalDateTime dataFim= dataInicio.plusMinutes(servico.getDuracaoMinutos());
@@ -76,7 +79,7 @@ public class AgendamentoService {
 
             boolean conflito = dataInicio.isBefore(existeAgendamentoFim) && existeAgendamentoInicio.isBefore(dataFim);
             if(conflito){
-                throw new IllegalStateException("O profissional ja possui agendamento para esse Horário");
+                throw new AgendamentoConflitoException("O profissional ja possui agendamento para esse Horário");
             }
         }
         Agendamento agendamento = new Agendamento(cliente, profissional, servico,dataInicio);
@@ -114,7 +117,7 @@ public class AgendamentoService {
     //listar agendamento por profissional
     public Page<AgendamentoResponseDto> getAgendamentoByProfissional(Long id, Pageable pageable){
         if(!profissionalRepository.existsById(id)) {
-            throw new RuntimeException("usuario nao encontrado");
+            throw new UserNotFoundException("usuario nao encontrado");
         }
 
         return agendamentoRepository.findByProfissionalId(id, pageable).map(this::dataFimToDto);
@@ -123,7 +126,7 @@ public class AgendamentoService {
     //listar agendamento por cliente
     public Page<AgendamentoResponseDto> getAgendamentoByCliente(Long id, Pageable pageable){
         if(!clienteRepository.existsById(id)) {
-            throw new RuntimeException("usuario nao encontrado");
+            throw new UserNotFoundException("usuario nao encontrado");
         }
 
         return agendamentoRepository.findByClienteId(id, pageable).map(this::dataFimToDto);
