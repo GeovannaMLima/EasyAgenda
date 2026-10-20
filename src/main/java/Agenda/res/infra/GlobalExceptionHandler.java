@@ -7,13 +7,29 @@ import Agenda.res.exception.UserNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<RestErrorMessage> handleGenerico(Exception e, HttpServletRequest request){
+        String errorMessage = "Erro interno no servidor.";
+
+        RestErrorMessage threatResponse = new RestErrorMessage(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
+                errorMessage,
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(threatResponse);
+    }
 
     @ExceptionHandler(AgendamentoConflitoException.class)
     private ResponseEntity<RestErrorMessage> handleAgendamentoConflito(AgendamentoConflitoException e, HttpServletRequest request){
@@ -61,6 +77,21 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(threatResponse);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    private ResponseEntity<RestErrorMessage> handleMethodArgumentNotValid(MethodArgumentNotValidException e, HttpServletRequest request){
+        String errorMessage = e.getBindingResult().getFieldErrors().stream()
+                .map(error-> error.getField() + ": "+error.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+        RestErrorMessage threatResponse = new RestErrorMessage(
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                errorMessage,
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(threatResponse);
     }
 
 }
