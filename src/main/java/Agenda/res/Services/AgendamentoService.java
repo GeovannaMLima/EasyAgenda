@@ -10,10 +10,7 @@ import Agenda.res.exception.ServiceNotFoundException;
 import Agenda.res.exception.UserNotFoundException;
 import Agenda.res.messaging.event.AgendamentoCriadoEvent;
 import Agenda.res.messaging.publisher.AgendamentoEventPublisher;
-import Agenda.res.models.Agendamento;
-import Agenda.res.models.Cliente;
-import Agenda.res.models.Profissional;
-import Agenda.res.models.Servico;
+import Agenda.res.models.*;
 import Agenda.res.repositories.AgendamentoRepository;
 import Agenda.res.repositories.ClienteRepository;
 import Agenda.res.repositories.ProfissionalRepository;
@@ -77,7 +74,7 @@ public class AgendamentoService {
             LocalDateTime existeAgendamentoInicio = existeAgendamento.getDataHoraInicio();
             LocalDateTime existeAgendamentoFim= existeAgendamentoInicio.plusMinutes(existeAgendamento.getServico().getDuracaoMinutos());
 
-            boolean conflito = dataInicio.isBefore(existeAgendamentoFim) && existeAgendamentoInicio.isBefore(dataFim);
+            boolean conflito = dataInicio.isBefore(existeAgendamentoFim) && existeAgendamentoInicio.isBefore(dataFim) && existeAgendamento.getStatusAgendamento() == StatusAgendamento.AGENDADO;
             if(conflito){
                 throw new AgendamentoConflitoException("O profissional ja possui agendamento para esse Horário");
             }
@@ -130,6 +127,22 @@ public class AgendamentoService {
         }
 
         return agendamentoRepository.findByClienteId(id, pageable).map(this::dataFimToDto);
+    }
+
+    public void cancelarAgendamento(Long id){
+        var agendamento = agendamentoRepository.findById(id).orElseThrow(()-> new ServiceNotFoundException("Agendamento não encontrado"));
+        if(agendamento.getStatusAgendamento() == StatusAgendamento.CANCELADO){
+            throw new AgendamentoConflitoException("Agendamento ja cancelado");
+        }
+        agendamento.setStatusAgendamento(StatusAgendamento.CANCELADO);
+        agendamentoRepository.save(agendamento);
+        auditoriaProducer.publicar(new AgendamentoAuditoriaEvent(agendamento.getId(),
+                AcaoAuditoria.CANCELADO,
+                agendamento.getCliente().getId(),
+                agendamento.getProfissional().getId(),
+                agendamento.getServico().getId(),
+                agendamento.getDataHoraInicio(),
+                LocalDateTime.now()));
     }
 
     private AgendamentoResponseDto dataFimToDto(Agendamento a){

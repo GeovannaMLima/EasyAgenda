@@ -42,6 +42,9 @@ public class Agendamento {
 
     private LocalDateTime dataHoraInicio;
 
+    @Enumerated(EnumType.STRING)
+    private StatusAgendamento statusAgendamento = StatusAgendamento.AGENDADO;
+
 
 
 

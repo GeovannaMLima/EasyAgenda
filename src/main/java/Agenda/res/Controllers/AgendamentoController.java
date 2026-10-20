@@ -40,4 +40,10 @@ public class AgendamentoController {
     public ResponseEntity<Page<AgendamentoResponseDto>> getListByCliente(@PathVariable(value="id") Long id, @PageableDefault(page=0,size=10,sort="dataHoraInicio",direction= Sort.Direction.ASC) Pageable pageable){
         return ResponseEntity.status(HttpStatus.OK).body(agendamentoService.getAgendamentoByCliente(id, pageable));
     }
+
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<Object> cancelarAgendamento(@PathVariable(value="id") Long id){
+        agendamentoService.cancelarAgendamento(id);
+        return ResponseEntity.noContent().build();
+    }
 }
