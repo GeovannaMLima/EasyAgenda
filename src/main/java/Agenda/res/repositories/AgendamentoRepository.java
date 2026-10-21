@@ -1,6 +1,7 @@
 package Agenda.res.repositories;
 
 import Agenda.res.models.Agendamento;
+import Agenda.res.models.StatusAgendamento;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,5 +18,6 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento,Long> {
     );
     Page<Agendamento> findByProfissionalId(Long profissionalId, Pageable pageable);
     Page<Agendamento> findByClienteId(Long clienteId, Pageable pageable);
-
+    Page<Agendamento> findByProfissionalIdAndStatusAgendamento(Long id, StatusAgendamento status, Pageable pageable);
+    Page<Agendamento> findByClienteIdAndStatusAgendamento(Long id, StatusAgendamento status, Pageable pageable);
 }
