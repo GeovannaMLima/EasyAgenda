@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -31,6 +32,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(threatResponse);
     }
 
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<RestErrorMessage> handleArgumentoInvalido(Exception e, HttpServletRequest request){
+        String errorMessage = "valor inválido para o parâmetro.";
+
+        RestErrorMessage threatResponse = new RestErrorMessage(
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                errorMessage,
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(threatResponse);
+    }
     @ExceptionHandler(AgendamentoConflitoException.class)
     private ResponseEntity<RestErrorMessage> handleAgendamentoConflito(AgendamentoConflitoException e, HttpServletRequest request){
         RestErrorMessage threatResponse = new RestErrorMessage(

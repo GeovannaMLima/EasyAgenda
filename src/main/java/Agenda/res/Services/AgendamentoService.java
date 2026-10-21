@@ -47,6 +47,7 @@ public class AgendamentoService {
         this.agendamentoRepository = agendamentoRepository;
         this.clienteRepository = clienteRepository;
         this.profissionalRepository = profissionalRepository;
+
         this.servicoRepository = servicoRepository;
 
         this.eventPublisher = eventPublisher;
@@ -105,6 +106,7 @@ public class AgendamentoService {
                 cliente.getNome(),
                 profissional.getNome(),
                 servico.getNome(),
+                agendamentoSalvo.getStatusAgendamento(),
                 dataInicio,
                 dataFim
         );
@@ -112,21 +114,26 @@ public class AgendamentoService {
     }
 
     //listar agendamento por profissional
-    public Page<AgendamentoResponseDto> getAgendamentoByProfissional(Long id, Pageable pageable){
+    public Page<AgendamentoResponseDto> getAgendamentoByProfissional(Long id,StatusAgendamento status ,Pageable pageable){
         if(!profissionalRepository.existsById(id)) {
             throw new UserNotFoundException("usuario nao encontrado");
         }
-
-        return agendamentoRepository.findByProfissionalId(id, pageable).map(this::dataFimToDto);
+        if(status == null){
+            return agendamentoRepository.findByProfissionalId(id,pageable).map(this::dataFimToDto);
+        }
+        return agendamentoRepository.findByProfissionalIdAndStatusAgendamento(id,status,pageable).map(this::dataFimToDto);
     }
 
     //listar agendamento por cliente
-    public Page<AgendamentoResponseDto> getAgendamentoByCliente(Long id, Pageable pageable){
+    public Page<AgendamentoResponseDto> getAgendamentoByCliente(Long id, StatusAgendamento status,Pageable pageable){
         if(!clienteRepository.existsById(id)) {
             throw new UserNotFoundException("usuario nao encontrado");
         }
+        if(status == null){
+            return agendamentoRepository.findByClienteId(id, pageable).map(this::dataFimToDto);
+        }
 
-        return agendamentoRepository.findByClienteId(id, pageable).map(this::dataFimToDto);
+        return agendamentoRepository.findByClienteIdAndStatusAgendamento(id,status, pageable).map(this::dataFimToDto);
     }
 
     public void cancelarAgendamento(Long id){
@@ -153,6 +160,7 @@ public class AgendamentoService {
                 a.getCliente().getNome(),
                 a.getProfissional().getNome(),
                 a.getServico().getNome(),
+                a.getStatusAgendamento(),
                 a.getDataHoraInicio(),
                 datafim);
     }

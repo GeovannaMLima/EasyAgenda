@@ -4,6 +4,7 @@ import Agenda.res.Dtos.AgendamentoRequestDto;
 import Agenda.res.Dtos.AgendamentoResponseDto;
 import Agenda.res.Services.AgendamentoService;
 import Agenda.res.models.Agendamento;
+import Agenda.res.models.StatusAgendamento;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -32,13 +33,13 @@ public class AgendamentoController {
     }
 
     @GetMapping("/{id}/list_profissional")
-    public ResponseEntity<Page<AgendamentoResponseDto>> getListByProfissional(@PathVariable(value="id")Long id, @PageableDefault(page=0,size=10,sort="dataHoraInicio",direction= Sort.Direction.ASC) Pageable pageable){
-        return ResponseEntity.status(HttpStatus.OK).body(agendamentoService.getAgendamentoByProfissional(id,pageable));
+    public ResponseEntity<Page<AgendamentoResponseDto>> getListByProfissional(@PathVariable(value="id")Long id, @RequestParam(required = false)StatusAgendamento status, @PageableDefault(page=0,size=10,sort="dataHoraInicio",direction= Sort.Direction.ASC) Pageable pageable){
+        return ResponseEntity.status(HttpStatus.OK).body(agendamentoService.getAgendamentoByProfissional(id,status,pageable));
     }
 
     @GetMapping("/{id}/list_cliente")
-    public ResponseEntity<Page<AgendamentoResponseDto>> getListByCliente(@PathVariable(value="id") Long id, @PageableDefault(page=0,size=10,sort="dataHoraInicio",direction= Sort.Direction.ASC) Pageable pageable){
-        return ResponseEntity.status(HttpStatus.OK).body(agendamentoService.getAgendamentoByCliente(id, pageable));
+    public ResponseEntity<Page<AgendamentoResponseDto>> getListByCliente(@PathVariable(value="id") Long id, @RequestParam(required = false)StatusAgendamento status, @PageableDefault(page=0,size=10,sort="dataHoraInicio",direction= Sort.Direction.ASC) Pageable pageable){
+        return ResponseEntity.status(HttpStatus.OK).body(agendamentoService.getAgendamentoByCliente(id, status,pageable));
     }
 
     @PatchMapping("/{id}/cancel")
