@@ -1,9 +1,6 @@
 package Agenda.res.infra;
 
-import Agenda.res.exception.AgendamentoConflitoException;
-import Agenda.res.exception.ServiceNotFoundException;
-import Agenda.res.exception.UserAlreadyExistsException;
-import Agenda.res.exception.UserNotFoundException;
+import Agenda.res.exception.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -106,6 +103,21 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(threatResponse);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    private ResponseEntity<RestErrorMessage> handleAuthenticationException(MethodArgumentNotValidException e, HttpServletRequest request){
+        String errorMessage = e.getBindingResult().getFieldErrors().stream()
+                .map(error-> error.getField() + ": "+error.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+        RestErrorMessage threatResponse = new RestErrorMessage(
+                HttpStatus.UNAUTHORIZED.value(),
+                HttpStatus.UNAUTHORIZED.getReasonPhrase(),
+                errorMessage,
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(threatResponse);
     }
 
 }
