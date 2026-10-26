@@ -14,7 +14,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 @Entity
 @Table(name="cliente")
-public class Cliente implements Serializable {
+public class Cliente implements Serializable  {
     private static final long serialVersionUID = 1L;
 
     @Id
@@ -24,6 +24,10 @@ public class Cliente implements Serializable {
     private String nome;
     private String email;
     private String telefone;
+
+    @OneToOne
+    @JoinColumn(name="user_id")
+    private User user;
 
 
 }
