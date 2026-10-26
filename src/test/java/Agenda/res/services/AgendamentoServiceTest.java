@@ -54,8 +54,8 @@ public class AgendamentoServiceTest {
     @Test
     void deveAgendarQuandoNaoHaConflito(){
         //Arrange
-        Cliente cliente= new Cliente(1L,"Ana","Ana@gmail.com","9000000000");
-        Profissional profissional= new Profissional(1L, "Jose","Jose@gmail.com",null);
+        Cliente cliente= new Cliente(1L,"Ana","Ana@gmail.com","9000000000",null);
+        Profissional profissional= new Profissional(1L, "Jose","Jose@gmail.com",null,null);
         Servico servico= new Servico(1L,"corte",60, new BigDecimal("50.00"), profissional );
 
         LocalDateTime dataInicio= LocalDateTime.now().plusDays(1);
@@ -83,8 +83,8 @@ public class AgendamentoServiceTest {
     @Test
     void naoDeveAgendarQuandoHouverConflito(){
         //arrange
-        Cliente cliente= new Cliente(1L,"Ana","Ana@gmail.com","9000000000");
-        Profissional profissional= new Profissional(1L, "Jose","Jose@gmail.com",null);
+        Cliente cliente= new Cliente(1L,"Ana","Ana@gmail.com","9000000000",null);
+        Profissional profissional= new Profissional(1L, "Jose","Jose@gmail.com",null,null);
         Servico servico= new Servico(1L,"corte",60, new BigDecimal("50.00"), profissional );
 
         LocalDateTime dataInicio= LocalDateTime.now().plusDays(1);
