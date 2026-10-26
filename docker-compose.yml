@@ -51,6 +51,7 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/agendafacil
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
+      JWT_SECRET: ${JWT_SECRET}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:19092
 
