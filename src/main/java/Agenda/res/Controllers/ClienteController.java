@@ -6,10 +6,9 @@ import Agenda.res.Services.ClienteService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/cliente")
@@ -25,5 +24,15 @@ public class ClienteController {
     public ResponseEntity<ClienteResponseDto>registerCliente(@Valid @RequestBody ClienteRequestDto requestDto){
         var response = clienteService.createCliente(requestDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{id}")
+    public  ResponseEntity<ClienteResponseDto> getClienteById(@PathVariable (value="id") Long id){
+        return ResponseEntity.status(HttpStatus.OK).body(clienteService.listById(id));
+    }
+
+    @GetMapping()
+    public ResponseEntity<List<ClienteResponseDto>> getAllClientes(){
+        return ResponseEntity.status(HttpStatus.OK).body(clienteService.listAllClientes());
     }
 }

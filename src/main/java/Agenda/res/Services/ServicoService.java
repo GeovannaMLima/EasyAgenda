@@ -42,7 +42,7 @@ public class ServicoService {
 
     }
 
-    public List<ServicoResponseDto> listAllClientes(ServicoRequestDto request){
+    public List<ServicoResponseDto> listAllServicos(){
         List<Servico> servicoModel= servicoRepository.findAll();
         List<ServicoResponseDto> response = new ArrayList<>();
         for(Servico servico:servicoModel){

@@ -28,4 +28,8 @@ public class Profissional implements Serializable {
     @OneToMany(mappedBy = "profissional", cascade = CascadeType.ALL)
     private List<Servico> servicos = new ArrayList<>();
 
+    @OneToOne
+    @JoinColumn(name="user_id")
+    private User user;
+
 }
