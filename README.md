@@ -9,6 +9,7 @@ Projeto com mensageria **RabbitMQ** (notificação) e **Kafka** (auditoria). A a
 ## Stack
 
 - Java 25 e Spring Boot 4 (Web, Data JPA, Validation)
+- Spring Security com autenticação **JWT** (`java-jwt`) e senhas com **BCrypt**
 - PostgreSQL
 - RabbitMQ (Spring AMQP)
 - Apache Kafka (Spring Kafka)
@@ -42,6 +43,54 @@ flowchart LR
 
 Dois intervalos se sobrepõem quando o novo começa antes do fim do existente **e** o existente começa antes do fim do novo. Se houver sobreposição para o mesmo profissional, o agendamento é recusado e nada é salvo nem publicado.
 
+### Autenticação e perfis
+
+A API usa **JWT**, sem sessão no servidor (stateless). O usuário faz login, recebe um token e envia esse token no header `Authorization: Bearer <token>` nas rotas protegidas.
+
+```mermaid
+sequenceDiagram
+    participant C as Cliente
+    participant A as AuthController
+    participant M as AuthenticationManager
+    participant T as TokenService
+    participant F as SecurityFilter
+    C->>A: POST /auth/login (email, senha)
+    A->>M: authenticate (BCrypt compara a senha)
+    M-->>A: usuário autenticado
+    A->>T: gera o token
+    T-->>A: JWT com validade de 2 horas
+    A-->>C: 200 { "token": "..." }
+    C->>F: requisição + Authorization: Bearer token
+    F->>F: valida o token e identifica o usuário
+    F-->>C: segue para o controller (ou 401/403)
+```
+
+### Perfis
+
+| Perfil | Como é criado |
+|---|---|
+| `CLIENTE` | `POST /cliente/register` |
+| `PROFISSIONAL` | `POST /profissional/register` |
+| `ADMIN` | Criado no startup a partir de `ADMIN_EMAIL` / `ADMIN_PASSWORD`. Não existe rota pública para virar admin |
+
+### Quem pode o quê
+
+| Endpoint | Acesso |
+|---|---|
+| `POST /auth/login` | Público |
+| `POST /cliente/register` | Público |
+| `POST /profissional/register` | Público |
+| `POST /servico/add` | `PROFISSIONAL`, `ADMIN` |
+| Listar todos os clientes | `ADMIN` |
+| `POST /agendamentos/add` | Usuário autenticado; só para o próprio cliente |
+| `GET /agendamentos/{id}/list_cliente` | O próprio cliente, `ADMIN` |
+| `GET /agendamentos/{id}/list_profissional` | O próprio profissional, `ADMIN` |
+| `PATCH /agendamentos/{id}/cancel` | O cliente ou o profissional do agendamento, `ADMIN` |
+
+### Regra de propriedade
+
+Cada usuário só acessa os **próprios** agendamentos; o `ADMIN` acessa todos. O sistema nunca confia no id enviado na URL ou no corpo: compara com o usuário do token. Acesso indevido retorna `403`.
+
 ## Decisões de arquitetura
 
 ### RabbitMQ para a notificação
@@ -72,14 +121,21 @@ do nome do serviço na rede do Compose, ```kafka:19092```, porque localhost dent
 
 1. Clone o repositório:
    ```bash
-   git clone <url-do-repositorio>
-   cd <pasta-do-projeto>
+   git clone https://github.com/GeovannaMLima/EasyAgenda.git
+   cd EasyAgenda
    ```
 2. Crie o arquivo de variáveis a partir do exemplo e preencha a senha:
    ```bash
    cp .env.example .env
    ```
    No PowerShell, use ```copy .env.example .env.```
+
+| Variável | Para que serve |
+|---|---|
+| `DB_USER` / `DB_PASS` | Usuário e senha do PostgreSQL |
+| `DB_URL` | URL de conexão com o banco (`jdbc:postgresql://localhost:5433/agendafacil` fora do Docker) |
+| `JWT_SECRET` | Segredo usado para assinar os tokens JWT. Use uma string longa e aleatória (32+ caracteres) |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Credenciais do administrador criado automaticamente na primeira execução (senha com 8+ caracteres) |
 
 ### Opção 1: Docker
 3. Suba a infraestrutura (PostgreSQL, RabbitMQ , Kafka e API):
@@ -97,32 +153,37 @@ A API fica em `http://localhost:8080`. O painel do RabbitMQ fica em `http://loca
 
 ## Endpoints
 
-Cadastre nesta ordem, porque o agendamento depende dos três primeiros.
+As rotas de cadastro e o login são públicas. As demais exigem `Authorization: Bearer <token>`.
 
-### 1. Profissional
+### 1. Cadastro e login
+
 `POST /profissional/register`
 ```json
-{ "nome": "Maria", "email": "maria@email.com" }
+{ "nome": "Maria", "email": "maria@email.com", "senha": "senha1234" }
 ```
 
-### 2. Serviço
+`POST /cliente/register`
+```json
+{ "nome": "Ana", "email": "ana@email.com", "senha": "senha1234", "telefone": "999999999" }
+```
+
+`POST /auth/login`
+```json
+{ "email": "maria@email.com", "senha": "senha1234" }
+```
+Resposta (`200 OK`): `{ "token": "..." }`
+
+### 2. Serviço (token de PROFISSIONAL)
 `POST /servico/add`
 ```json
 { "nome": "Corte de cabelo", "duracao": 60, "price": 50.00, "profissionalId": 1 }
 ```
 
-### 3. Cliente
-`POST /cliente/register`
-```json
-{ "nome": "Ana", "email": "ana@email.com", "telefone": "999999999" }
-```
-
-### 4. Agendamento
+### 3. Agendamento (token de CLIENTE)
 `POST /agendamentos/add`
 ```json
 { "clienteId": 1, "profissionalId": 1, "servicoId": 1, "dataHoraInicio": "2026-12-10T14:00:00" }
 ```
-
 Resposta (`201 Created`):
 ```json
 {
@@ -130,13 +191,33 @@ Resposta (`201 Created`):
   "nomeCliente": "Ana",
   "nomeProfissional": "Maria",
   "nomeServico": "Corte de cabelo",
+  "status": "AGENDADO",
   "dataHoraInicio": "2026-12-10T14:00:00",
   "dataHoraFim": "2026-12-10T15:00:00"
 }
 ```
-
 A data precisa estar no futuro. Um segundo agendamento no mesmo horário para o mesmo profissional é recusado.
 
+### 4. Listar agendamentos (paginado)
+- `GET /agendamentos/{clienteId}/list_cliente`
+- `GET /agendamentos/{profissionalId}/list_profissional`
+
+Parâmetros opcionais: `status` (`AGENDADO` ou `CANCELADO`), `page` (padrão 0), `size` (padrão 10).
+Exemplo: `GET /agendamentos/1/list_cliente?status=AGENDADO&page=0&size=10`
+
+### 5. Cancelar
+`PATCH /agendamentos/{id}/cancel` retorna `204 No Content`. O cancelamento é lógico (o status vira `CANCELADO`) e publica um evento de auditoria no Kafka.
+
+## Erros
+
+| Status | Quando |
+|---|---|
+| `400` | Dados inválidos ou parâmetro com valor inválido |
+| `401` | Credenciais inválidas ou token ausente/inválido |
+| `403` | Sem permissão para o recurso |
+| `404` | Recurso não encontrado |
+| `409` | Conflito: horário ocupado, agendamento já cancelado, e-mail já cadastrado |
+| `500` | Erro interno |
 ## Testes
 
 ```bash
@@ -147,6 +228,9 @@ A data precisa estar no futuro. Um segundo agendamento no mesmo horário para o 
 
 - Cria o agendamento quando não há conflito e publica os dois eventos;
 - Recusa quando há conflito e confirma que nada é salvo nem publicado.
+- Nega a listagem de agendamentos de outro cliente (`403`);
+- Permite que o `ADMIN` acesse qualquer recurso;
+- Nega o cancelamento por quem não é dono do agendamento.
 
 ## Integração contínua (CI)
 - A cada push e a cada Pull Request, o GitHub Actions executa os testes automaticamente (workflow `Java CI with Maven`).
