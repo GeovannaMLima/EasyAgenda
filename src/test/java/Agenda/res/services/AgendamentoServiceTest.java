@@ -4,12 +4,10 @@ import Agenda.res.AuditoriaMessaging.producer.AuditoriaProducer;
 import Agenda.res.Dtos.AgendamentoRequestDto;
 import Agenda.res.Dtos.AgendamentoResponseDto;
 import Agenda.res.Services.AgendamentoService;
+import Agenda.res.exception.AcessoNegadoException;
 import Agenda.res.exception.AgendamentoConflitoException;
 import Agenda.res.messaging.publisher.AgendamentoEventPublisher;
-import Agenda.res.models.Agendamento;
-import Agenda.res.models.Cliente;
-import Agenda.res.models.Profissional;
-import Agenda.res.models.Servico;
+import Agenda.res.models.*;
 import Agenda.res.repositories.AgendamentoRepository;
 import Agenda.res.repositories.ClienteRepository;
 import Agenda.res.repositories.ProfissionalRepository;
@@ -20,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -57,7 +56,10 @@ public class AgendamentoServiceTest {
         Cliente cliente= new Cliente(1L,"Ana","Ana@gmail.com","9000000000",null);
         Profissional profissional= new Profissional(1L, "Jose","Jose@gmail.com",null,null);
         Servico servico= new Servico(1L,"corte",60, new BigDecimal("50.00"), profissional );
-
+        User userCLiente = new User();
+        userCLiente.setId(1L);
+        userCLiente.setTipoUser(TipoDeUser.CLIENTE);
+        cliente.setUser(userCLiente);
         LocalDateTime dataInicio= LocalDateTime.now().plusDays(1);
         AgendamentoRequestDto requestDto = new AgendamentoRequestDto(1L,1L,1L, dataInicio);
 
@@ -70,7 +72,7 @@ public class AgendamentoServiceTest {
 
 
         //Act
-        AgendamentoResponseDto response = agendamentoService.createAgendamento(requestDto);
+        AgendamentoResponseDto response = agendamentoService.createAgendamento(requestDto,userCLiente);
 
 
         //Assert
@@ -86,6 +88,10 @@ public class AgendamentoServiceTest {
         Cliente cliente= new Cliente(1L,"Ana","Ana@gmail.com","9000000000",null);
         Profissional profissional= new Profissional(1L, "Jose","Jose@gmail.com",null,null);
         Servico servico= new Servico(1L,"corte",60, new BigDecimal("50.00"), profissional );
+        User userCLiente = new User();
+        userCLiente.setId(1L);
+        userCLiente.setTipoUser(TipoDeUser.CLIENTE);
+        cliente.setUser(userCLiente);
 
         LocalDateTime dataInicio= LocalDateTime.now().plusDays(1);
         AgendamentoRequestDto requestDto = new AgendamentoRequestDto(1L,1L,1L, dataInicio);
@@ -101,10 +107,26 @@ public class AgendamentoServiceTest {
         //act e assert
         //testando uma exception
         assertThrows(AgendamentoConflitoException.class, () ->{
-            agendamentoService.createAgendamento(requestDto);
+            agendamentoService.createAgendamento(requestDto,userCLiente);
         });
         verify(agendamentoRepository,never()).save(any());
         verifyNoInteractions(eventPublisher,auditoriaProducer);
+    }
+
+    @Test
+    void naoDeveListarAgendamentosDeOutroCliente(){
+        Cliente cliente = new Cliente(1L,"Ana","ana@gmail.com","9000000000",null);
+        User dono = new User(); dono.setId(1L); dono.setTipoUser(TipoDeUser.CLIENTE);
+        cliente.setUser(dono);
+
+        User intruso = new User(); intruso.setId(2L); intruso.setTipoUser(TipoDeUser.CLIENTE);
+
+        when(clienteRepository.findById(1L)).thenReturn(Optional.of(cliente));
+
+        assertThrows(AcessoNegadoException.class, () ->
+                agendamentoService.getAgendamentoByCliente(1L, null, Pageable.unpaged(), intruso));
+
+        verifyNoInteractions(agendamentoRepository);
     }
 
 }
