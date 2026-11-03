@@ -5,6 +5,7 @@ import Agenda.res.AuditoriaMessaging.event.AgendamentoAuditoriaEvent;
 import Agenda.res.AuditoriaMessaging.producer.AuditoriaProducer;
 import Agenda.res.Dtos.AgendamentoRequestDto;
 import Agenda.res.Dtos.AgendamentoResponseDto;
+import Agenda.res.exception.AcessoNegadoException;
 import Agenda.res.exception.AgendamentoConflitoException;
 import Agenda.res.exception.ServiceNotFoundException;
 import Agenda.res.exception.UserNotFoundException;
@@ -54,9 +55,9 @@ public class AgendamentoService {
         this.auditoriaProducer = auditoriaProducer;
     }
 
-    public AgendamentoResponseDto createAgendamento(AgendamentoRequestDto request){
+    public AgendamentoResponseDto createAgendamento(AgendamentoRequestDto request, User user){
         Cliente cliente = clienteRepository.findById(request.clienteId()).orElseThrow(()->new UserNotFoundException("Cliente nao encontrado"));
-
+        validarAcesso(user, cliente.getUser());
         Profissional profissional = profissionalRepository.findById(request.profissionalId()).orElseThrow(()->new UserNotFoundException("Profissional não encontrado"));
 
         Servico servico = servicoRepository.findById(request.servicoId()).orElseThrow(()-> new ServiceNotFoundException("Servico não encontrado"));
@@ -114,10 +115,9 @@ public class AgendamentoService {
     }
 
     //listar agendamento por profissional
-    public Page<AgendamentoResponseDto> getAgendamentoByProfissional(Long id,StatusAgendamento status ,Pageable pageable){
-        if(!profissionalRepository.existsById(id)) {
-            throw new UserNotFoundException("usuario nao encontrado");
-        }
+    public Page<AgendamentoResponseDto> getAgendamentoByProfissional(Long id,StatusAgendamento status ,Pageable pageable, User user){
+        var profissional = profissionalRepository.findById(id).orElseThrow(()-> new UserNotFoundException("usuario nao encontrado"));
+        validarAcesso(user,profissional.getUser());
         if(status == null){
             return agendamentoRepository.findByProfissionalId(id,pageable).map(this::dataFimToDto);
         }
@@ -125,10 +125,10 @@ public class AgendamentoService {
     }
 
     //listar agendamento por cliente
-    public Page<AgendamentoResponseDto> getAgendamentoByCliente(Long id, StatusAgendamento status,Pageable pageable){
-        if(!clienteRepository.existsById(id)) {
-            throw new UserNotFoundException("usuario nao encontrado");
-        }
+    public Page<AgendamentoResponseDto> getAgendamentoByCliente(Long id, StatusAgendamento status,Pageable pageable,User user){
+        var cliente = clienteRepository.findById(id).orElseThrow(()-> new UserNotFoundException("usuario nao encontrado"));
+
+        validarAcesso(user,cliente.getUser());
         if(status == null){
             return agendamentoRepository.findByClienteId(id, pageable).map(this::dataFimToDto);
         }
@@ -136,8 +136,15 @@ public class AgendamentoService {
         return agendamentoRepository.findByClienteIdAndStatusAgendamento(id,status, pageable).map(this::dataFimToDto);
     }
 
-    public void cancelarAgendamento(Long id){
+    public void cancelarAgendamento(Long id, User user){
         var agendamento = agendamentoRepository.findById(id).orElseThrow(()-> new ServiceNotFoundException("Agendamento não encontrado"));
+        boolean permitido = user.getTipoUser() == TipoDeUser.ADMIN
+                || souDono(user, agendamento.getCliente().getUser())
+                || souDono(user, agendamento.getProfissional().getUser());
+
+        if(!permitido){
+            throw new AcessoNegadoException("Você não tem permissão para cancelar este agendamento");
+        }
         if(agendamento.getStatusAgendamento() == StatusAgendamento.CANCELADO){
             throw new AgendamentoConflitoException("Agendamento ja cancelado");
         }
@@ -163,6 +170,18 @@ public class AgendamentoService {
                 a.getStatusAgendamento(),
                 a.getDataHoraInicio(),
                 datafim);
+    }
+
+    private void validarAcesso(User logado, User dono){
+        if(logado.getTipoUser() == TipoDeUser.ADMIN){
+            return;
+        }
+        if(dono == null || !logado.getId().equals(dono.getId())){
+            throw new AcessoNegadoException("Você não tem permissão para acessar este recurso");
+        }
+    }
+    private boolean souDono(User logado, User dono){
+        return dono != null && logado.getId().equals(dono.getId());
     }
 
 
